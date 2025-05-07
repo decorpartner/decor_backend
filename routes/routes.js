@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  UserloginAll, SignupAdmin, Adminlogin, getAllGalleryController, deleteGalleryController, AddAdminBlogController, AdmindeleteBlogController, AddAdminCategoryController
+  UserloginAll, SignupAdmin, Adminlogin, getAllGalleryController, deleteGalleryController, AddAdminBlogController,UpdateAdminBlogController, AdmindeleteBlogController, AddAdminCategoryController
   , getAllReviewsAdmin, AdmingetAllCategories, AddAdminProduct, getAllcategoryFillAdmin, updateCategoryAdmin, getCategoryIdAdmin, deleteCategoryAdmin, getAllProductFillAdmin, updateProductAdmin, getProductIdAdmin, deleteProductAdmin,
   AddAdminPromoController, getAllPromoAdmin, updatePromoAdmin, getPromoIdAdmin, deletePromoAdmin
   , getAllEnquireAdmin, ChangePassAdmin, ForgotAdminPassword, editOrderAdmin, editLeadStatusAdmin,deleteOrderAdmin, AddAdminPageController, getAllPageAdmin, updatePageAdmin, getPageIdAdmin, deletePageAdmin, getAllBlogAdmin, exportAllProAdmin, importAllProAdmin,editOrderEmployeeAdmin, AdminGetAllEmployee, getAllUserAdmin, AddAdminTaxController, getAllTaxAdmin, updateTaxAdmin, getTaxIdAdmin, deleteTaxAdmin, ViewAllAdminZones, AddAdminZonesController, getAllZonesAdmin, updateZonesAdmin, getZonesIdAdmin, deleteZonesAdmin, GetImageAdmin, deleteFolderAdmin, UpdateFolderAdmin, getUserIdAdmin, GetFolderIDAdmin, AddAdminFolderController, GetFolderAdmin, editUserAdmin, AddAdminAttributeController, deleteRatingAdmin, editReviewAdmin, getAllOrderAdmin, getAllAttributeFillAdmin, updateAttributeAdmin, getAttributeIdAdmin, deleteAttributeAdmin, getAllAttribute, AddAdminTagController, getAllTagFillAdmin, updateTagAdmin, getTagIdAdmin, deleteTagAdmin, getAllTag, editHomeData, editHomeLayoutData,
@@ -37,7 +37,7 @@ router.post('/admin/addBlog', AddAdminBlogController);
 router.get('/admin/all-blogs', getAllBlogAdmin);
 
 
-router.post('/admin/update-blog/:id', AddAdminBlogController);
+router.post('/admin/update-blog/:id', UpdateAdminBlogController);
 router.delete('/admin/delete-blog/:id', AdmindeleteBlogController);
 
 router.post('/admin/add-category', AddAdminCategoryController);

@@ -71,6 +71,9 @@ const homeLayoutSchema = new mongoose.Schema(
         latest_product: {
             type: Array,
             default: {}
+        }, trending_product: {
+            type: Array,
+            default: {}
         },
         latest_product_banner: {
             type: Array,

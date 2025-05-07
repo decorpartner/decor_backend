@@ -789,7 +789,7 @@ export const UsergetAllHomeProducts = async (req, res) => {
   try {
     const products = await productModel.find(
       {},
-      "_id title pImage regularPrice salePrice stock slug variant_products variations"
+      "_id title pImage regularPrice salePrice stock slug variant_products variations images"
     );
 
     if (!products) {
@@ -2349,7 +2349,7 @@ export const GetAllCategoriesBySlugController = async (req, res) => {
     // Fetch products based on filters with pagination
     const products = await productModel
       .find(filters)
-      .select("_id title regularPrice salePrice pImage variations slug features userId")
+      .select("_id title regularPrice salePrice pImage variations slug features userId images")
       .populate('userId', 'username phone email coverage')
        .skip(skip)
       .limit(perPage)
@@ -2358,7 +2358,7 @@ export const GetAllCategoriesBySlugController = async (req, res) => {
     const Procat = { Category: parentId, status: "true" }; // Add status filter for products
     const productsFilter = await productModel
       .find(Procat)
-      .select("_id regularPrice salePrice variations slug")
+      .select("_id regularPrice salePrice variations slug images")
       .lean();
 
     const proLength = products.length;
@@ -6987,6 +6987,7 @@ export const getCategoriesWithProducts = async (req, res) => {
             features: 1,
             salePrice: 1,
             regularPrice: 1,
+            images:1,
             // Add any other fields you need from the product model
           }
         }

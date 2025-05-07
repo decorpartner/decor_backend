@@ -389,17 +389,36 @@ export const AddAdminBlogController = async (req, res) => {
       description,
       image,
       metaTitle,
-      slug,
       metaDescription,
       metaKeywords,
     } = req.body;
-    //validation
-    if (!title) {
+
+    // Validation
+    if (
+      !title ||
+      !description ||
+      !image ||
+      !metaTitle ||
+      !metaDescription ||
+      !metaKeywords
+    ) {
       return res.status(400).send({
         success: false,
         message: "Please Provide All Fields",
       });
     }
+
+    // Custom slug generator
+    const generateSlug = (text) =>
+      text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-') // Replace spaces with -
+        .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+        .replace(/\-\-+/g, '-'); // Replace multiple - with single -
+
+    const slug = generateSlug(title);
 
     const newBlog = new blogModel({
       title,
@@ -410,7 +429,9 @@ export const AddAdminBlogController = async (req, res) => {
       metaDescription,
       metaKeywords,
     });
+
     await newBlog.save();
+
     return res.status(201).send({
       success: true,
       message: "Blog Created!",
@@ -420,7 +441,82 @@ export const AddAdminBlogController = async (req, res) => {
     console.log(error);
     return res.status(400).send({
       success: false,
-      message: "Error WHile Creting blog",
+      message: "Error While Creating Blog",
+      error,
+    });
+  }
+};
+
+export const UpdateAdminBlogController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      image,
+      metaTitle,
+      metaDescription,
+      metaKeywords,
+    } = req.body;
+
+    // Validation
+    if (
+      !title ||
+      !description ||
+      !image ||
+      !metaTitle ||
+      !metaDescription ||
+      !metaKeywords
+    ) {
+      return res.status(400).send({
+        success: false,
+        message: "Please Provide All Fields",
+      });
+    }
+
+    // Custom slug generator
+    const generateSlug = (text) =>
+      text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-');
+
+    const slug = generateSlug(title);
+
+    const updatedBlog = await blogModel.findByIdAndUpdate(
+      id,
+      {
+        title,
+        description,
+        image,
+        slug,
+        metaTitle,
+        metaDescription,
+        metaKeywords,
+      },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedBlog) {
+      return res.status(404).send({
+        success: false,
+        message: "Blog Not Found",
+      });
+    }
+
+    return res.status(200).send({
+      success: true,
+      message: "Blog Updated Successfully",
+      updatedBlog,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({
+      success: false,
+      message: "Error While Updating Blog",
       error,
     });
   }
