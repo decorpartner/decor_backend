@@ -1519,7 +1519,7 @@ export const EmailVerify = async (req, res) => {
 
 export const HomeSendEnquire_old = async (req, res) => {
   const { fullname, email, phone, service, QTY, userId,
-    userEmail, } = req.body;
+    userEmail } = req.body;
 
   try {
     // Save data to the database
@@ -2721,7 +2721,7 @@ export const getProductIdUserBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
     const Product = await productModel.findOne({ slug: slug })
-     .populate('userId', 'username phone email coverage');
+     .populate('userId', 'username phone email coverage address createdAt');
     if (!Product) {
       return res.status(200).send({
         message: "product Not Found By Id",
@@ -3335,6 +3335,13 @@ export const SignupLoginUser = async (req, res) => {
     const existingUser = await userModel.findOne({ phone });
 
     if (existingUser) {
+      if(existingUser.type !== 2){
+       return res.status(400).json({
+        success: false,
+        message: "User Already register as vendor",
+       });
+      }
+      
       if (existingUser.password !== undefined) {
         if (existingUser.status === "0") {
           return res.status(400).json({
@@ -3384,17 +3391,17 @@ export const SignupLoginUser = async (req, res) => {
       // block
       console.log(otp);
       // await sendLogOTP(phone, otp);
-      // return res.status(200).json({
-      //   success: true,
-      //   message: "New User found",
-      //   newUser: true,
-      //   otp: ecryptOTP,
-      // });
-      return res.status(400).json({
-        success: false,
-        message: "User Not Found",
+      return res.status(200).json({
+        success: true,
+        message: "New User found",
+        newUser: true,
+        otp: ecryptOTP,
+      });
+      // return res.status(400).json({
+      //   success: false,
+      //   message: "User Not Found",
         
-       });
+      //  });
 
     }
   } catch (error) {
@@ -6601,6 +6608,64 @@ export const BuyPlanByUser = async (req, res) => {
   }
 };
 
+export const BuyPlanByUserFree = async (req, res) => {
+  try {
+
+    const {
+      UserData,
+      planId,
+      totalAmount,
+    } = req.body;
+
+    const transactionId = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    const paymentData = PayuHash(totalAmount, UserData.username, UserData.email, UserData.phone, transactionId);
+
+    // Determine 'Local' based on the state
+    let Local = 0;
+    if (UserData.state) {
+      const State = await zonesModel.findById(UserData.state);
+      if (State && State.primary === 'true') {
+        Local = 1;
+      }
+    }
+
+    // Calculate the auto-increment ID for paymentId
+    const lastLead = await buyPlanModel.findOne().sort({ _id: -1 }).limit(1);
+    let paymentId = 1;
+    if (lastLead) {
+      paymentId = parseInt(lastLead.paymentId || 1) + 1;
+    }
+
+    const newBuyPlan = new buyPlanModel({
+      userId: UserData._id,
+      planId,
+      totalAmount,
+      paymentId,
+      note: 'Payment successfully added',
+      payment: 1, // Placeholder for actual payment value
+      Local,
+      razorpay_order_id: transactionId
+    });
+
+    await newBuyPlan.save();
+
+    res.status(200).json({
+      success: true,
+      buyPlan: newBuyPlan, // Include the newly created buy plan in the response
+      message: "plan buy sucessfully.",
+      paymentData
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({
+      message: `Error occurred during user signup: ${error.message}`,
+      success: false,
+      error,
+    });
+  }
+};
+
 export const BuyPlanAddUser = async (req, res) => {
   console.log(req.body);
 
@@ -6668,9 +6733,6 @@ export const BuyPlanAddUser = async (req, res) => {
       country,
       city,
       userId,
-      pHealthHistory,
-      cHealthStatus,
-      aadharno
     };
     if (profileImg && profileImg[0]) {
       updateField.profile = profileImg[0].path; // Assumes profile[0] is the uploaded file
