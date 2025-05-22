@@ -475,6 +475,7 @@ export const updateUserController = async (req, res) => {
   }
 };
 
+ 
 export const getAllBlogsController = async (req, res) => {
   try {
     const blogs = await blogModel.find({}).lean();
@@ -567,7 +568,7 @@ export const updateBlogController = async (req, res) => {
 export const getBlogIdController = async (req, res) => {
   try {
     const { id } = req.params;
-    const blog = await blogModel.findById(id);
+    const blog = await blogModel.findOne({slug:id});
     if (!blog) {
       return res.status(200).send({
         message: "Blog Not Found By Id",
@@ -632,6 +633,7 @@ export const userBlogsController = async (req, res) => {
     });
   }
 };
+
 
 export const userTokenController = async (req, res) => {
   try {
@@ -1754,6 +1756,7 @@ export const HomeSendEnquire = async (req, res) => {
     category, 
     longitude,
     latitude,
+    agentId
   } = req.body;
 
  
@@ -1776,6 +1779,84 @@ export const HomeSendEnquire = async (req, res) => {
       orderId: order_id,
       longitude,
       latitude,
+      agentId,
+      category: Array.isArray(category) ? category[0] : category, // Convert array to string
+    });
+
+    console.log('req.body',req.body)
+    await newEnquire.save();
+
+    // Send the success response once everything is processed
+    res.status(200).send("Enquiry submitted successfully");
+
+  } catch (error) {
+    console.error("Error in send data:", error);
+    // Handle error and send response only once
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const HomeReferralEnquire = async (req, res) => {
+  
+  // Calculate the auto-increment ID
+  const lastOrder = await orderModel.findOne().sort({ _id: -1 }).limit(1);
+  let order_id;
+
+  if (lastOrder) {
+    const lastOrderId = parseInt(lastOrder.orderId);
+    order_id = lastOrderId + 1;
+  } else {
+    order_id = 1;
+  }
+
+  const {
+    fullname,
+    email,
+    phone,
+    service,
+    pincode,
+    state,
+    statename,
+    address,
+    city,
+    bookingDate,
+    bookingTime,
+    requirement,
+    category, 
+    longitude,
+    latitude,
+    Referral,agentId,referralId
+  } = req.body;
+
+ if(!Referral){
+    return res.status(400).json({
+      success: false,
+      message: "Referral id required",
+    });
+ }
+
+  try {
+    // Save data to the database
+    const newEnquire = new orderModel({
+      fullname,
+      email,
+      phone,
+      service,
+      pincode,
+      state,
+      statename,
+      address,
+      city,
+      type: 1,
+      orderId: order_id,
+      longitude,
+      latitude,
+      Referral:referralId,
+      agentId,
+      lead:0,
       category: Array.isArray(category) ? category[0] : category, // Convert array to string
     });
 
@@ -1793,7 +1874,6 @@ export const HomeSendEnquire = async (req, res) => {
     });
   }
 };
-
 
 export const HomeSendEnquireCatgeory = async (req, res) => {
   const {
@@ -5051,7 +5131,7 @@ export const AuthUserByID = async (req, res) => {
           pHealthHistory: existingUser.pHealthHistory,
           cHealthStatus: existingUser.cHealthStatus,
           coverage: existingUser.coverage,
-
+          wallet : existingUser.wallet || 0,
         },
       });
 
@@ -6179,7 +6259,26 @@ export const checkUserPlan = async (req, res) => {
   }
 };
 
+export const GetAllUser = async (req, res) => { 
+  try {
+    // Extract the category (which can be an array of ObjectIds), type, and coordinates from query parameters
+   
+    const users = await userModel.find(); // Missing 'await' in your original code
+ 
+    return res.status(200).send({
+      message: 'All User List',
+       success: true,
+      users
+    });
 
+  } catch (error) {
+    return res.status(500).send({
+      message: `Error while fetching user: ${error.message}`,
+      success: false,
+      error,
+    });
+  }
+};
 
 export const GetPlanUser = async (req, res) => {
 
@@ -7094,6 +7193,70 @@ export const getCategoriesWithProducts = async (req, res) => {
   }
 }
 
+export const AllUserByDetails = async (req, res) => { 
+  try {
+    // Extract the category (which can be an array of ObjectIds), type, and coordinates from query parameters
+    const { type,filter,phone } = req.query;
+ 
+    // Build the filter object
+    const fillter = {};  // Only fetch employees with the type (assuming "employee")
+
+ 
+    if(type && type !== 'none' ){
+      fillter.type = type;
+    }
+    if(phone && phone !== 'none' ){
+      fillter.phone = phone;
+    }
+    // Build the filter object
+   if(filter !== 'none'){
+    if(filter === '5' ){
+      fillter.empType = 5;
+    }
+    else if(filter === '4' ){
+      fillter.empType = 4;
+    }else if(filter === '3'){
+      fillter.empType = 3;
+    }else if(filter === '2'){
+      fillter.empType = 2;
+    }else{
+      fillter.empType = 5;
+    }
+  }
+  
+   
+  console.log('fillter',filter)
+
+    //  if (category) {
+    //    const categories = Array.isArray(category) ? category : [category];
+    //   filter.department = { $in: categories.map(id => new mongoose.Types.ObjectId(id)) };  // Use 'new' to create ObjectIds
+    // }
+
+    // Fetch users based on the filter
+    const users = await userModel.find(fillter, '_id username email phone gender address');
+
+    if (!users || users.length === 0) {
+      return res.status(200).send({
+        message: 'No User Found',
+        success: false,
+      });
+    }
+ 
+
+    return res.status(200).send({
+      message: 'All User List',
+      success: true,
+      Users: users,
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      message: `Error while fetching employees: ${error.message}`,
+      success: false,
+      error,
+    });
+  }
+};
 
 
 export const SenderEnquireStatus = async (req, res) => {
@@ -7270,3 +7433,52 @@ export const GetWebsiteData = async (req, res) => {
   }
 };
 
+export const UserAllgallery = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const skip = (page - 1) * limit;
+
+    const query = {}; // You can customize this if you want to filter products
+
+    // Get total count for pagination
+    const total = await productModel.countDocuments(query);
+
+    // Fetch products with only image and slug fields
+    const products = await productModel
+      .find(query)
+      .select("pImage slug userId") // Only select these fields
+        .populate({
+        path: 'userId',
+        select: 'username phone email', // Populate these fields
+      })
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    if (!products || products.length === 0) {
+      return res.status(200).send({
+        message: "No products found!",
+        success: false,
+      });
+    }
+
+    return res.status(200).send({
+      message: "Product gallery fetched successfully!",
+      toatalCount: products.length,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      success: true,
+      total,
+      products,
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      message: `Error while getting product data: ${error.message || error}`,
+      success: false,
+      error,
+    });
+  }
+};

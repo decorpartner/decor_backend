@@ -111,6 +111,16 @@ const orderSchema = mongoose.Schema({
       latitude: {
         type: String,
       },
+      
+    Referral: {
+        // Changed field name to plural and set type as an array of ObjectIds
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    lead: {
+    type: Number,
+    default:0
+  },
 },
   { timestamps: true }
 );

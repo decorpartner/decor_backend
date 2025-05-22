@@ -41,6 +41,7 @@ import departmentsModel from "../models/departmentsModel.js";
 import buyPlanModel from "../models/buyPlanModel.js";
 import mongoose from 'mongoose';
 import geolib from 'geolib';
+import transactionModel from "../models/transactionModel.js";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1937,6 +1938,7 @@ export const getAllOrderAdmin = async (req, res) => {
     const statusFilter = req.query.status ? req.query.status.split(',') : []; // Get status filter from the query parameters and split into an array
     const employeeId = req.query.employeeId ; // Get search term from the query parameters
     const employee = req.query.employee; // Get search term from the query parameters
+    const Referral = req.query.referral; // Get search term from the query parameters
 
     const skip = (page - 1) * limit;
 
@@ -1955,15 +1957,22 @@ export const getAllOrderAdmin = async (req, res) => {
       query.status = { $in: statusFilter }; // Use $in operator to match any of the values in the array
     }
     if (employeeId.length > 0 && employeeId !== 'null') {
-      query.agentId = { $in: employeeId }; // Use $in operator to match any of the values in the array
+      query.agentId = employeeId; // Use $in operator to match any of the values in the array
     }
+    
     if(employee === "true"){
       query.agentId = { $ne: null }; // agentId should not be null
     }
     if(employee === "false"){
       query.agentId = { $in: null }; // agentId should not be null
     }
-     
+
+ if (Referral === 'True') {
+  query.Referral = { $nin: null }; // Not null and not empty
+} else {
+  query.Referral = { $in: null };  // Is null or empty
+}
+
     const total = await orderModel.countDocuments(query); // Count total documents matching the query
 
     const Order = await orderModel
@@ -1978,7 +1987,7 @@ export const getAllOrderAdmin = async (req, res) => {
       }).populate({
         path: "agentId",
         model: userModel,
-        select: "username",
+        select: "username email phone",
       }).populate({
         path: "asignId",
         model: userModel,
@@ -1987,7 +1996,7 @@ export const getAllOrderAdmin = async (req, res) => {
 
 
     if (!Order || Order.length === 0) { // Check if no users found
-      return res.status(404).send({ // Send 404 Not Found response
+      return res.status(400).send({ // Send 404 Not Found response
         message: "No Order Found",
         success: false,
       });
@@ -2224,7 +2233,8 @@ export const editOrderAdmin = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    console.log(status)
+    console.log(status);
+    
     const order = await orderModel.findById(id).populate('userId'); // Fetch order details including user
 
     if (!order) {
@@ -2363,7 +2373,7 @@ export const editLeadStatusAdmin = async (req, res) => {
     const { status } = req.body;
 
     console.log(status)
-    const order = await orderModel.findById(id).populate('userId'); // Fetch order details including user
+    const order = await orderModel.findById(id).populate('userId').populate('Referral'); // Fetch order details including user
 
     if (!order) {
       return res.status(400).json({
@@ -2372,14 +2382,44 @@ export const editLeadStatusAdmin = async (req, res) => {
       });
     }
 
+    let updateFields;
+
+    if(status === 100){
+
+      const user = await userModel.findById(order.Referral._id); // Fetch order details including user
+      const Homedata = await homeModel.findOne(); // Fetch order details including user
+             console.log('Homedata',Homedata);
+      const shareAmt = Homedata.shareAmt || 0;
+                   console.log('shareAmt',shareAmt);
+
+    updateFields = {
+      leadStatus: status,
+      lead : 1
+    };
+          console.log('user',user);
+      console.log('Referral',order.Referral);
+
+    if (user) {
+       
+
+    user.wallet = (user.wallet || 0) + shareAmt;
+    await user.save();
+    }
+
+    }else{
+
+    updateFields = {
+      leadStatus: status,
+      lead : 0
+    };
+
+    }
+
     // const user = order.userId[0]; // Assuming there's only one user associated with the order
 
     // const { email, username, _id } = user; // Extract user email
 
-    let updateFields = {
-      leadStatus: status,
-    };
-
+    
     const updatedOrder = await orderModel.findByIdAndUpdate(id, updateFields, {
       new: true,
     });
@@ -4657,7 +4697,262 @@ export const AllPaymentAdmin = async (req, res) => {
   }
 };
 
+export const AllTransactionAdmin_old = async (req, res) => {
 
+    try {
+    const page = parseInt(req.query.page) || 1; // Current page, default is 1
+    const limit = parseInt(req.query.limit) || 10; // Number of documents per page, default is 10
+     const userId = req.query.userId || ''; // Get search term from the query parameters
+
+
+    const skip = (page - 1) * limit;
+
+    const query = {};
+ 
+    
+  if (userId.length > 0 && userId !== '') {
+      query.userId = userId; // Use $in operator to match any of the values in the array
+    }
+    
+    const totalTransaction = await transactionModel.countDocuments();
+
+    const Transaction = await transactionModel
+      .find(query)
+      .sort({ _id: -1 }) // Sort by _id in descending order
+      .skip(skip)
+      .limit(limit) .populate({
+    path: 'userId', // Make sure this matches the field name in your schema
+    select: 'username phone',
+  }) .lean();
+
+  
+
+    if (!Transaction) {
+      return res.status(200).send({
+        message: "NO Transaction found",
+        success: false,
+      });
+    }
+    return res.status(200).send({
+      message: "All Transaction list ",
+      TransactionCount: Transaction.length,
+      currentPage: page,
+      totalPages: Math.ceil(totalTransaction / limit),
+      success: true,
+      Transaction,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      message: `Error while getting Department ${error}`,
+      success: false,
+      error,
+    });
+  }
+
+
+   
+};
+
+
+export const AllTransactionAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const userId = req.query.userId;
+    const search = req.query.search?.trim() || '';
+
+    const skip = (page - 1) * limit;
+
+    const match = {};
+
+    if (userId) {
+      match.userId = userId;
+    }
+
+    // Aggregation pipeline
+    const pipeline = [
+      { $match: match },
+
+      // Join with user collection
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userId',
+        },
+      },
+      { $unwind: '$userId' }, // Flatten userId array
+
+      // Search filtering
+      ...(search
+        ? [
+            {
+              $match: {
+                $or: [
+                  { 'userId.username': { $regex: search, $options: 'i' } },
+                  { 'userId.phone': { $regex: search, $options: 'i' } },
+                  { 'userId.email': { $regex: search, $options: 'i' } },
+                  { t_id: { $regex: search, $options: 'i' } },
+                ],
+              },
+            },
+          ]
+        : []),
+
+      // Sort & paginate
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+
+      // Return all fields including populated userId
+      {
+        $project: {
+          _id: 1,
+          note: 1,
+          amount: 1,
+          type: 1,
+          t_id: 1,
+          t_no: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          userId: {
+            _id: 1,
+            username: 1,
+            phone: 1,
+            email: 1,
+          },
+        },
+      },
+    ];
+
+    // Count pipeline
+    const countPipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userId',
+        },
+      },
+      { $unwind: '$userId' },
+      ...(search
+        ? [
+            {
+              $match: {
+                $or: [
+                  { 'userId.username': { $regex: search, $options: 'i' } },
+                  { 'userId.phone': { $regex: search, $options: 'i' } },
+                  { 'userId.email': { $regex: search, $options: 'i' } },
+                  { t_id: { $regex: search, $options: 'i' } },
+                ],
+              },
+            },
+          ]
+        : []),
+      { $count: 'total' },
+    ];
+
+    const [transactions, countResult] = await Promise.all([
+      transactionModel.aggregate(pipeline),
+      transactionModel.aggregate(countPipeline),
+    ]);
+
+    const totalTransaction = countResult.length > 0 ? countResult[0].total : 0;
+
+    return res.status(200).json({
+      message: 'All Transaction list',
+      TransactionCount: transactions.length,
+      currentPage: page,
+      totalPages: Math.ceil(totalTransaction / limit),
+      success: true,
+      transactions,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: `Error while getting transactions: ${error.message}`,
+      success: false,
+      error,
+    });
+  }
+};
+
+
+export const withdrawalUserAdmin = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const homeData = await homeModel.findOne();
+    if (!homeData) {
+      return res.status(500).send({
+        success: false,
+        message: "Home settings not found",
+      });
+    }
+
+    const withdrawalAmt = homeData.withdrawalAmt;
+
+    if ((user.wallet || 0) < withdrawalAmt) {
+      return res.status(400).send({
+        success: false,
+        message: `Sorry, your wallet balance is less than the minimum withdrawal amount of ${withdrawalAmt}`,
+      });
+    }
+
+    // Deduct withdrawal amount
+    user.wallet = (user.wallet || 0) - withdrawalAmt;
+
+    // Get last transaction number
+    const lastTrans = await transactionModel
+      .findOne()
+      .sort({ _id: -1 })
+      .limit(1);
+
+    const lastTransId = lastTrans ? parseInt(lastTrans.t_no || 0) + 1 : 1;
+    const t_id = "tt00" + lastTransId;
+
+    // Create a new transaction
+    const transaction = new transactionModel({
+      userId,
+      type: 1,
+      note: `Withdrawal amount -${withdrawalAmt}`,
+      amount: -withdrawalAmt,
+      t_id,
+      t_no: lastTransId,
+    });
+
+    await transaction.save();
+    await user.save();
+
+    // Send successful response
+    return res.status(200).send({
+      success: true,
+      message: `Withdrawal of ${withdrawalAmt} successful.`,
+      transaction,
+      walletBalance: user.wallet,
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: `Error processing withdrawal: ${error.message}`,
+      error,
+    });
+  }
+};
+
+ 
+    
 export const AdminAllEnquireStatus = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Current page, default is 1
@@ -4728,3 +5023,68 @@ export const AdminAllEnquireStatus = async (req, res) => {
 export const profileImageHealth = upload.fields([
   { name: "profile", maxCount: 1 },
 ]);
+
+
+export const AdminAllgallery = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1; // Current page, default is 1
+    const limit = parseInt(req.query.limit) || 10; // Number of documents per page, default is 10
+    const searchTerm = req.query.search || ""; // Get search term from the query parameters
+    const userId = req.query.userId; // Directly access userId from query parameters
+
+    const skip = (page - 1) * limit;
+
+    // Initialize the query object
+    let query = {};
+
+    // If userId is provided, filter by userId
+    if (userId) {
+      query.userId = userId; // Filter by userId
+    }
+
+    query.type = 1; // Filter by userId
+
+
+    // If there's a search term, apply it to a specific field (assuming a text index exists on the model)
+    if (searchTerm) {
+      query.$text = { $search: searchTerm }; // Assuming your model has text indexes for search
+    }
+
+    // Count the total documents matching the query
+    const total = await productModel.countDocuments(query);
+
+    // Retrieve the data
+    const products = await productModel
+      .find(query)
+      .sort({ _id: -1 }) // Sort by _id in descending order
+      .skip(skip)
+      .limit(limit)
+      .populate('userId', 'username email phone address') // Populate userId with username, email, phone, and address
+      .populate('senderId', 'username email phone address') // Populate senderId with username, email, phone, and address
+      .lean();
+ 
+    if (!Enquire || Enquire.length === 0) {
+      return res.status(200).send({
+        message: "No Enquiries found for the given criteria.",
+        success: false,
+      });
+    }
+
+    return res.status(200).send({
+      message: "All products!",
+      toatalCount: products.length,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      success: true,
+      total,
+      products,
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      message: `Error while getting Enquire data: ${error.message || error}`,
+      success: false,
+      error,
+    });
+  }
+};

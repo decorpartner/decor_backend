@@ -53,6 +53,14 @@ const homeSchema = new mongoose.Schema(
         razorpay: {
             type: String,
             default: ""
+        },
+        shareAmt: {
+         type: Number,
+        default:0
+        },
+         withdrawalAmt: {
+         type: Number,
+        default:0
         }
 
     },

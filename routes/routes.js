@@ -8,16 +8,16 @@ import {
   getAllDepartmentFillAdmin,
   getDepartmentIdAdmin,
   updateDepartmentAdmin,
-  deleteDepartmentAdmin, editUserVerifyAdmin, AllPaymentAdmin, AdminAllEnquireStatus, profileImageHealth
+  deleteDepartmentAdmin, editUserVerifyAdmin, AllPaymentAdmin, AdminAllEnquireStatus, profileImageHealth,withdrawalUserAdmin,AllTransactionAdmin
 } from "../controller/adminController.js";
 
 import {
   getCategoriesWithProducts , AddCart, contactEnquire, razorpayCallback, UpdateCart, getCart, userTokenController, userBlogsController, Userlogin, SignupUser, getAllBlogsController, createBlogController,
   LoginAndVerifyOTP, updateBlogController, deleteBlogController, getBlogIdController, CreateChatController, findUserschatController, findchatController
   , EmailVerify, postman, PaymentResponse, PaymentRequest, getProductsByFilterUser, cancelOrderUser, ViewAllZones, ViewAllZonesOnly,getProductsByHSN, AuthUserByID, updateProfileUser, SignupNewUser, LoginUserWithOTP, LoginUserWithPass, SendOTP,SignupLoginNew, SignupLoginUser, getTaxIdUser, ViewAllUserTaxes, ViewCompareByUser, applyPromoCode, getHomeLayoutData, AddWishListByUser, deleteCompareByUser, deleteWishListByUser, ViewWishListByUser, AddCompareByUser, ViewProductRating, ViewCategoryRating, AddRating, UsergetAllCategories, UsergetAllProducts, UsergetAllHomeProducts,FullOrdersViewController, userOrdersViewController, getAllAttributeUser, getProductIdUser, updateUserController, createOrderController, updateUserAndCreateOrderController, userOrdersController, getHomeData, GetAllCategoriesByParentIdController, GetAllCategoriesBySlugController
-  , BuyPlanUser, GetPlanUser, HomeSendEnquire,contactSendEnquire,HomeSendEnquireCatgeory, getAllPlanCategoryController, uploadDataZone, deleteAllZones, SignupUserType, updateDetailsUser, updateDetailsUserHealth, getAllPlanUser, getProductIdUserBySlug
+  , BuyPlanUser, GetPlanUser, HomeSendEnquire,contactSendEnquire,HomeSendEnquireCatgeory,HomeReferralEnquire, getAllPlanCategoryController, uploadDataZone, deleteAllZones, SignupUserType, updateDetailsUser, updateDetailsUserHealth, getAllPlanUser, getProductIdUserBySlug
   , getAllVendor, getAllDepartment, profileVendorImage, ApiGetKey, PaymentSuccess, PaymentFail,
-  updateVendorProfileUser, paymentVerification, BuyPlanAddUser, BuyPlanByUser,BuyPlanByUserFree, PayuHash, userPlanIdController,ViewAllZonesCategory, ViewAllZonesDepartment, getVendorById, HomeSendvendorEnquire, ApplyEnquireStatus, SenderEnquireStatus, AllPayment, downloadUserInvoice, checkUserPlan, GetWebsiteData, GetWebsiteData_old
+  updateVendorProfileUser,GetAllUser,UserAllgallery, paymentVerification,AllUserByDetails, BuyPlanAddUser, BuyPlanByUser,BuyPlanByUserFree, PayuHash, userPlanIdController,ViewAllZonesCategory, ViewAllZonesDepartment, getVendorById, HomeSendvendorEnquire, ApplyEnquireStatus, SenderEnquireStatus, AllPayment, downloadUserInvoice, checkUserPlan, GetWebsiteData, GetWebsiteData_old
 } from "../controller/userController.js"
 import authenticateToken from "../middleware/authMiddleware.js";
 import { uploadImage, handleImageUpload } from "../controller/adminController.js";
@@ -103,7 +103,9 @@ router.get('/admin/get-user/:id', getUserIdAdmin);
 
 router.get("/all-employee", AdminGetAllEmployee);
 router.put("/admin/update-employee-order/:id/", editOrderEmployeeAdmin);
- 
+ router.get("/all-user", GetAllUser);
+
+
 // Folder Admin 
 
 router.post('/admin/add-folder', AddAdminFolderController);
@@ -307,7 +309,8 @@ router.post('/email-verify/', checkOrigin, EmailVerify);
 
 router.post('/signup-login-otp/', checkOrigin, SignupLoginUser);
 router.post('/signup-login-new/', checkOrigin, SignupLoginNew);
-
+router.get('/get-user-details/', checkOrigin, AllUserByDetails);
+ 
 
 
 router.post('/login-with-pass/', checkOrigin, LoginUserWithPass);
@@ -321,6 +324,9 @@ router.post('/auth-user/', checkOrigin, AuthUserByID);
 router.post('/contact-enquire/', checkOrigin, contactEnquire);
 
 router.post('/send-enquire/', checkOrigin, HomeSendEnquire);
+router.post('/send-referral-enquire', checkOrigin, HomeReferralEnquire);
+
+
 router.post('/send-enquire-vendor/', checkOrigin, HomeSendvendorEnquire);
 
 router.post('/send-enquire-category/', checkOrigin, HomeSendEnquireCatgeory);
@@ -370,11 +376,12 @@ router.post("/download-invoice", downloadUserInvoice);
 router.get("/admin/sender-enquire-status", SenderEnquireStatus);
 
 router.get("/admin/all-payment", AllPaymentAdmin);
-
-
+router.get("/admin/withdrawal/:userId", withdrawalUserAdmin);
+router.get("/admin/all-transaction", AllTransactionAdmin);
+ 
 
 router.get("/check-plan-user/:userId", checkUserPlan);
-
+ 
 router.get("/all-plan", GetPlanUser);
 
 router.post("/buy-plan-add-user", profileImageHealth, BuyPlanAddUser);
@@ -407,6 +414,9 @@ router.post("/payment-success", PaymentSuccess);
 router.post("/payment-fail", PaymentFail);
 
 router.get('/get-catgeory-product', getCategoriesWithProducts );
+
+router.get('/user-all-gallery', UserAllgallery );
+
 
 
 export default router;
